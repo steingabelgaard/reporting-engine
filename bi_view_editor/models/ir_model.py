@@ -198,6 +198,8 @@ class IrModel(models.Model):
             vals['state'] = 'base'
         res = super(IrModel, self).create(cr, user, vals, context)
         if vals.get('state', 'base') == 'bve':
+            print ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
+            print ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
             vals['state'] = 'manual'
 
             # add model in registry
