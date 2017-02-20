@@ -8,10 +8,12 @@ from psycopg2 import ProgrammingError
 
 from openerp import _, api, fields, models, SUPERUSER_ID
 from openerp.exceptions import Warning
+from openerp.modules.registry import RegistryManager
 
 _STATE_SELECTION = [
     ('draft', 'Draft'),
     ('sql_view_created', 'SQL View Created'),
+    ('registry_updated', 'Registry Updated'),
     ('ui_created', 'UI Created'),
 ]
 
@@ -35,6 +37,10 @@ class BiSQLView(models.Model):
 
     materialized_text = fields.Char(
         compute='_compute_materialized_text', store=True)
+
+    size = fields.Char(
+        string='Database Size', readonly=True,
+        help="Size of the materialized view and its indexes")
 
     state = fields.Selection(
         string='State', required=True, selection=_STATE_SELECTION,
@@ -100,6 +106,7 @@ class BiSQLView(models.Model):
         self.view_id.unlink()
         self.action_id.unlink()
         self.menu_id.unlink()
+        self.cron_id.unlink()
         self.write({'state': 'draft'})
 
     @api.multi
@@ -115,8 +122,10 @@ class BiSQLView(models.Model):
         self.write({'state': 'sql_view_created'})
 
     @api.multi
-    def button_refresh_materialized_view(self):
-        self._refresh_materialized_view()
+    def button_update_registry(self):
+        RegistryManager.new(self._cr.dbname, update_module=True)
+        RegistryManager.signal_registry_change(self._cr.dbname)
+        self.write({'state': 'registry_updated'})
 
     @api.multi
     def button_create_ui(self):
@@ -126,6 +135,21 @@ class BiSQLView(models.Model):
             self._prepare_action()).id
         self.menu_id = self.env['ir.ui.menu'].create(
             self._prepare_menu()).id
+        self.write({'state': 'ui_created'})
+
+    @api.multi
+    def button_refresh_materialized_view(self):
+        self._refresh_materialized_view()
+
+    @api.multi
+    def button_open_view(self):
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': self.model_id.model,
+            'view_id': self.view_id.id,
+            'view_type': 'graph',
+            'view_mode': 'graph',
+        }
 
     # Prepare Function
     @api.multi
@@ -144,7 +168,7 @@ class BiSQLView(models.Model):
             'user_id': SUPERUSER_ID,
             'model': 'bi.sql.view',
             'function': 'button_refresh_materialized_view',
-            'args': repr([self.id])
+            'args': repr(([self.id],))
         }
 
     @api.multi
@@ -255,3 +279,7 @@ class BiSQLView(models.Model):
             self._log_execute(
                 "REFRESH %s VIEW %s" % (
                     self.materialized_text, sql_view.technical_name))
+            self._cr.execute(
+                "SELECT pg_size_pretty(pg_total_relation_size('%s'));" % (
+                    sql_view.technical_name))
+            sql_view.size = self._cr.fetchone()[0]

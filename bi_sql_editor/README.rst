@@ -11,22 +11,20 @@ of extra custom report.
 It allows admin user to write a custom SQL request.
 Once written, a new model is generated, and admin can map the selected field
 with odoo fields.
-Then admin ends the process, creating
+Then admin ends the process, creating new menu, action and graph view.
 
 Technically, the module create SQL View (or materialized view, if option is
 checked). Materialized view duplicate datas, but request are fastest. If
-materialized view is enabled, user will 
+materialized view is enabled, this module will create a cron task, 
 
 Warning
 -------
 This module intended for technician people in a company and for Odoo integrators.
 
-This module requires that the user knows SQL syntax and Odoo models.
-
+It requires that the user knows SQL syntax and Odoo models.
 
 If you don't have such skills, do not try to use this module in a production
 database.
-
 
 Configuration
 =============
@@ -59,6 +57,7 @@ Known issues / Roadmap
 * when creating fields, set it to manual, instead base
 * once fields created, reload registry
 * create Cron Task
+* Create 
 
 Bug Tracker
 ===========

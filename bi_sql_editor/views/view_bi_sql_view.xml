@@ -23,14 +23,20 @@ License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
         <field name="arch" type="xml">
             <form>
                 <header>
-                    <button name="button_create_sql_view" type="object" states="draft" string="Create SQL View"
+                    <button name="button_create_sql_view" type="object" states="draft" string="Create SQL View" class="oe_highlight"
                         help="This will try to create an SQL View, based on the SQL request"/>
-                    <button name="button_create_ui" type="object" states="sql_view_created" string="Create UI"
-                        help="This will create Odoo View, Action and Menu"/>
+                    <button name="button_update_registry" type="object" states="sql_view_created"
+                        string="Update Registry (and create Index)" class="oe_highlight"
+                        help="This will updated the registry, and create Index, depending of the fields setting"/>
+                    <button name="button_create_ui" type="object" states="registry_updated" string="Create UI"
+                        class="oe_highlight" help="This will create Odoo View, Action and Menu"/>
                     <button name="button_refresh_materialized_view" type="object" string="Refresh Materialized View"
                         attrs="{'invisible': ['|', ('state', 'in', ('draft')), ('is_materialized', '=', False)]}"
                         help="this will refresh the materialized view"/>
-                    <button name="button_set_draft" type="object" states="sql_view_created,ui_created" string="Reset to Draft"
+                    <button name="button_open_view" type="object" string="Open View" class="oe_highlight"
+                        attrs="{'invisible': [('state', 'not in', ('ui_created'))]}" />
+                    <button name="button_set_draft" type="object" states="sql_view_created,registry_updated,ui_created"
+                        string="Reset to Draft"
                         confirm="Are you sure you want to set to draft this SQL View. It will delete
                         the materialized view, and all the previous mapping realized with the columns"/>
                     <field name="state" widget="statusbar" />
@@ -44,6 +50,8 @@ License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
                             <group>
                                 <field name="technical_name"/>
                                 <field name="is_materialized"/>
+                                <field name="size"
+                                    attrs="{'invisible': ['|', ('state', '=', 'draft'), ('is_materialized', '=', False)]}"/>
                                 <field name="model_id" attrs="{'invisible': [('state', '=', 'draft')]}"/>
                                 <field name="cron_id"
                                     attrs="{'invisible': ['|', ('state', '=', 'draft'), ('is_materialized', '=', False)]}"/>

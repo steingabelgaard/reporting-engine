@@ -33,6 +33,7 @@ class BiSQLFieldWizard(models.TransientModel):
 
     _SQL_MAPPING = {
         'boolean': 'boolean',
+        'bigint': 'integer',
         'integer': 'integer',
         'double precision': 'float',
         'numeric': 'float',
@@ -83,10 +84,26 @@ class BiSQLFieldWizard(models.TransientModel):
         self.ensure_one()
         vals = self._prepare_model_field()
         vals['state'] = 'base'
-        field_id = self.env['ir.model.fields'].create(vals)
-        self.bi_sql_field_id.field_id = field_id.id
+        field = self.env['ir.model.fields'].create(vals)
+        # hard set state to 'manual' (blocked by ORM)
+        self._cr.execute(
+            "update ir_model_fields"
+            " set state = 'manual'"
+            " where id = %s", (field.id,))
+        # Reload registry
+        # TODO
+        self.bi_sql_field_id.field_id = field.id
 
     # Custom Section
+    def _guess_field_description(self, sql_field):
+        if sql_field.name == 'id':
+            return 'ID'
+        else:
+            # remove 'x_' replace '_' by ' ' and Capitalize
+            return re.sub(
+                r'\w+', lambda m: m.group(0).capitalize(),
+                sql_field.name[2:].replace('_', ' '))
+
     def _guess_model_id(self, sql_field):
         model_name = self._MODEL_MAPPING.get(sql_field.name, '')
         return self.env['ir.model'].search([('model', '=', model_name)]).id
@@ -102,9 +119,7 @@ class BiSQLFieldWizard(models.TransientModel):
     @api.model
     def _prepare_wizard_field(self, sql_field):
         # Camel case the name
-        field_description = re.sub(
-            r'\w+', lambda m: m.group(0).capitalize(),
-            sql_field.name.replace('_', ' '))
+        field_description = self._guess_field_description(sql_field)
         ttype = self._guess_type(sql_field)
         many2one_model_id = False
         if sql_field.sql_type == 'integer' and(
@@ -112,8 +127,6 @@ class BiSQLFieldWizard(models.TransientModel):
                 sql_field.name[-4:] == '_uid'):
             ttype = 'many2one'
             many2one_model_id = self._guess_model_id(sql_field)
-        # TODO FIXME set 'state' == 'manual'
-        # AND RELOAD REGISTRY
         return {
             'field_description': field_description,
             'name': sql_field.name,
