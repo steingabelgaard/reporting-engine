@@ -51,7 +51,7 @@ To configure this module, you need to:
 
 * tip your SQL request
 
-  .. figure:: ./bi_sql_editor/static/description/01_sql_request.png
+  .. figure:: /bi_sql_editor/static/description/01_sql_request.png
      :width: 600 px
 
 * Once the view created, the module analyse the column of the view,
@@ -60,13 +60,13 @@ To configure this module, you need to:
   measure. If it's a MATERIALIZED view, a cron task is created to refresh
   the view. You can so define the frequency of the refresh.
 
-  .. figure:: ./bi_sql_editor/static/description/02_field_mapping.png
+  .. figure:: /bi_sql_editor/static/description/02_field_mapping.png
      :width: 600 px
 
 * Once the mapping realized, and the indexes created, the wizard will
   create menu item, action and graph views.
 
-  .. figure:: ./bi_sql_editor/static/description/03_final_setting.png
+  .. figure:: /bi_sql_editor/static/description/03_final_setting.png
      :width: 600 px
 
 Usage
@@ -78,7 +78,7 @@ To use this module, you need to:
 
 * select the desired report
 
-  .. figure:: ./bi_sql_editor/static/description/04_reporting.png
+  .. figure:: /bi_sql_editor/static/description/04_reporting.png
      :width: 600 px
 
 .. image:: https://odoo-community.org/website/image/ir.attachment/5784_f2813bd/datas
