@@ -218,7 +218,8 @@ class BiSQLView(models.Model):
         for sql_view in self:
             self._log_execute(
                 "DROP %s VIEW IF EXISTS %s" % (
-                    self.materialized_text, sql_view.technical_name))
+                    sql_view.materialized_text, sql_view.technical_name))
+            sql_view.size = False
 
     @api.multi
     def _create_view(self):
@@ -230,10 +231,11 @@ class BiSQLView(models.Model):
                     "CREATE %s VIEW %s AS (%s);" % (
                         self.materialized_text, sql_view.technical_name,
                         sql_view.sql_request))
+                sql_view._refresh_size()
             except ProgrammingError as e:
                 raise Warning(_(
                     "SQL Error while creating %s VIEW %s :\n %s") % (
-                        self.materialized_text, sql_view.technical_name,
+                        sql_view.materialized_text, sql_view.technical_name,
                         e.message))
 
     @api.multi
@@ -245,6 +247,7 @@ class BiSQLView(models.Model):
                     "CREATE INDEX %s ON %s (%s);" % (
                         sql_field.index_name, sql_view.technical_name,
                         sql_field.name))
+            sql_view._refresh_size()
 
     @api.multi
     def _drop_index(self):
@@ -252,6 +255,7 @@ class BiSQLView(models.Model):
             for sql_field in sql_view.bi_sql_field_ids.filtered(
                     lambda x: x.is_index is True):
                 self._cr.execute("DROP INDEX %s" % (sql_field.index_name))
+            sql_view._refresh_size()
 
     @api.multi
     def _create_model(self):
@@ -268,10 +272,6 @@ class BiSQLView(models.Model):
     def _refresh_schema(self):
         sql_field_obj = self.env['bi.sql.field']
         for sql_view in self:
-            # Note:
-            # Could be improved, update schema, instead of deleting all
-            # fields. (interesting, if we add / remove one new column
-            # in the SQL View
             sql_view.bi_sql_field_ids.unlink()
             req = """
                 SELECT  attnum,
@@ -298,6 +298,11 @@ class BiSQLView(models.Model):
             self._log_execute(
                 "REFRESH %s VIEW %s" % (
                     self.materialized_text, sql_view.technical_name))
+            sql_view._refresh_size()
+
+    @api.multi
+    def _refresh_size(self):
+        for sql_view in self:
             self._cr.execute(
                 "SELECT pg_size_pretty(pg_total_relation_size('%s'));" % (
                     sql_view.technical_name))
