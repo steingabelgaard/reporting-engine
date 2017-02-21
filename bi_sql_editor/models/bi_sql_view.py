@@ -100,6 +100,7 @@ class BiSQLView(models.Model):
     # Action Section
     @api.multi
     def button_set_draft(self):
+        self._drop_index()
         self._drop_view()
         self.bi_sql_field_ids.unlink()
         self.model_id.unlink()
@@ -125,6 +126,7 @@ class BiSQLView(models.Model):
     def button_update_registry(self):
         RegistryManager.new(self._cr.dbname, update_module=True)
         RegistryManager.signal_registry_change(self._cr.dbname)
+        self._create_index()
         self.write({'state': 'registry_updated'})
 
     @api.multi
@@ -233,6 +235,23 @@ class BiSQLView(models.Model):
                     "SQL Error while creating %s VIEW %s :\n %s") % (
                         self.materialized_text, sql_view.technical_name,
                         e.message))
+
+    @api.multi
+    def _create_index(self):
+        for sql_view in self:
+            for sql_field in sql_view.bi_sql_field_ids.filtered(
+                    lambda x: x.is_index is True):
+                self._cr.execute(
+                    "CREATE INDEX %s ON %s (%s);" % (
+                        sql_field.index_name, sql_view.technical_name,
+                        sql_field.name))
+
+    @api.multi
+    def _drop_index(self):
+        for sql_view in self:
+            for sql_field in sql_view.bi_sql_field_ids.filtered(
+                    lambda x: x.is_index is True):
+                self._cr.execute("DROP INDEX %s" % (sql_field.index_name))
 
     @api.multi
     def _create_model(self):

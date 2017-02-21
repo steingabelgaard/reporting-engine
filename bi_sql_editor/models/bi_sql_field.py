@@ -40,11 +40,21 @@ class BiSQLField(models.Model):
 
     is_index = fields.Boolean(string='Is Index')
 
+    index_name = fields.Char(
+        string='Index Name', compute='_compute_index_name')
+
     graph_type = fields.Selection(
         string='Graph Type', selection=_GRAPH_TYPE_SELECTION)
 
     field_id = fields.Many2one(
         string='Field', comodel_name='ir.model.fields')
+
+    # Compute Section
+    @api.multi
+    def _compute_index_name(self):
+        for sql_field in self:
+            sql_field.index_name = '%s_%s' % (
+                sql_field.bi_sql_view_id.technical_name, sql_field.name)
 
     # Overload Section
     @api.multi

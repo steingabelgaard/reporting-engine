@@ -145,5 +145,5 @@ class BiSQLFieldWizard(models.TransientModel):
             'model_id': self.bi_sql_field_id.bi_sql_view_id.model_id.id,
             'ttype': self.ttype,
             'selection': self.ttype == 'selection' and self.selection or False,
-            'relation': self.many2one_model_id.name,
+            'relation': self.many2one_model_id.model,
         }
