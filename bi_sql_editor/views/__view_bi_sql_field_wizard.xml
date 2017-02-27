@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Copyright (C) 2017 - Today: GRAP (http://www.grap.coop)
+@author Sylvain LE GAL (https://twitter.com/legalsylvain)
+License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
+-->
+
+<openerp><data>
+
+   <record id="view_bi_sql_field_wizard" model="ir.ui.view">
+        <field name="name">Create Field</field>
+        <field name="model">bi.sql.field.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <group string="SQL Information">
+                        <field name="bi_sql_field_id" invisible="1"/>
+                        <field name="name" />
+                        <field name="sql_type" />
+                    </group>
+                    <group string="Odoo Field">
+                        <field name="field_description" />
+                        <field name="ttype" />
+                        <field name="selection" attrs="{'invisible': [('ttype', '!=', 'selection')], 'required': [('ttype', '=', 'selection')]}" />
+                        <field name="many2one_model_id" attrs="{'invisible': [('ttype', '!=', 'many2one')], 'required': [('ttype', '=', 'many2one')]}" />
+                    </group>
+                </group>
+                <footer>
+                    <button name="button_create_field" string="Create Field" type="object" class="oe_highlight"  />
+                    or
+                    <button string="Cancel" class="oe_link" special="cancel" />
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</data></openerp>
