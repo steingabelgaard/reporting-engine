@@ -12,18 +12,18 @@
     'author': 'GRAP,Odoo Community Association (OCA)',
     'website': 'https://www.odoo-community.org',
     'depends': [
-        'web',
+        'sql_request_abstract',
     ],
     'data': [
-        'views/action_button.xml',
+#        'views/action_button.xml',
         'views/view_bi_sql_view.xml',
-        'views/view_bi_sql_field_wizard.xml',
+#        'views/view_bi_sql_field_wizard.xml',
         'views/action.xml',
         'views/menu.xml',
     ],
     'demo': [
         'demo/res_groups.xml',
+        'demo/bi_sql_view.xml',
     ],
-    'images': [],
     'installable': True,
 }
