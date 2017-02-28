@@ -8,14 +8,18 @@ BI Views builder, based on Materialized or Normal SQL Views
 
 This module extends the functionality of reporting, to support creation
 of extra custom reports.
-It allows admin user to write a custom SQL request.
-Once written, a new model is generated, and admin can map the selected field
+It allows user to write a custom SQL request. (Generally, admin users)
+Once written, a new model is generated, and user can map the selected field
 with odoo fields.
-Then admin ends the process, creating new menu, action and graph view.
+Then user ends the process, creating new menu, action and graph view.
 
 Technically, the module create SQL View (or materialized view, if option is
 checked). Materialized view duplicate datas, but request are fastest. If
-materialized view is enabled, this module will create a cron task, 
+materialized view is enabled, this module will create a cron task to refresh
+the data).
+
+By default, users member of 'SQL Request / User' can see all the views.
+You can specify extra groups that have the right to access to a specific view.
 
 Warning
 -------
@@ -52,22 +56,36 @@ To configure this module, you need to:
 * tip your SQL request
 
   .. figure:: /bi_sql_editor/static/description/01_sql_request.png
-     :width: 600 px
+     :width: 800 px
 
-* Once the view created, the module analyse the column of the view,
+* Select the group(s) that could have access to the view
+
+  .. figure:: /bi_sql_editor/static/description/02_security_access.png
+     :width: 800 px
+
+* Click on the button 'Clean and Check Request'
+
+* Once the sql request checked, the module analyses the column of the view,
   and propose field mapping. For each field, you can decide to create an index
   and set if it will be displayed on the pivot graph as a column, a row or a
-  measure. If it's a MATERIALIZED view, a cron task is created to refresh
-  the view. You can so define the frequency of the refresh.
+  measure.
 
-  .. figure:: /bi_sql_editor/static/description/02_field_mapping.png
-     :width: 600 px
+  .. figure:: /bi_sql_editor/static/description/03_field_mapping.png
+     :width: 800 px
 
-* Once the mapping realized, and the indexes created, the wizard will
-  create menu item, action and graph views.
+* Click on the button 'Create SQL View, Indexes and Models'. (this step could
+  take a while, if view is materialized)
 
-  .. figure:: /bi_sql_editor/static/description/03_final_setting.png
-     :width: 600 px
+* If it's a MATERIALIZED view: 
+    * a cron task is created to refresh
+      the view. You can so define the frequency of the refresh.
+    * the size of view (and the indexes is displayed)
+
+  .. figure:: /bi_sql_editor/static/description/04_materialized_view_setting.png
+     :width: 800 px
+
+* Finally, click on 'Create UI', to create new menu, action, graph view and
+  search view.
 
 Usage
 =====
@@ -78,43 +96,41 @@ To use this module, you need to:
 
 * select the desired report
 
-  .. figure:: /bi_sql_editor/static/description/04_reporting.png
-     :width: 600 px
+  .. figure:: /bi_sql_editor/static/description/05_reporting_pivot.png
+     :width: 800 px
+
+* You can switch to 'Pie' chart or 'Line Chart' as any report,
+
+  .. figure:: /bi_sql_editor/static/description/05_reporting_pie.png
+     :width: 800 px
 
 .. image:: https://odoo-community.org/website/image/ir.attachment/5784_f2813bd/datas
    :alt: Try me on Runbot
    :target: https://runbot.odoo-community.org/runbot/143/8.0
 
-
-WIP - features to implement
-===========================
-
-* Demo : Add demo data.
-* Security : Groups to the module models.
-* Possibility to add groups to created models. (avoiding warning) (ir.model.access)
-* Possibility to add rules to the created models (ir.rule)
-* refactor creation. (create model and field in the same step + refresh )
-* refactor wizard. -> To allow user to mass create fields
-* [FIX] model guess do not work
-* Add 'interval', after type (row/col/measure) field for date(time) fields.
-* on row/col field, automatically create a search view with according fields.
-
 Known issues / Roadmap
 ======================
 
-* simplify SQL requests
-    * allow field without prefix x_
-    * allow ';' at the end
-
-* prevent maliscious SQL requests
+* Add 'interval', after type (row/col/measure) field for date(time) fields.
 
 * Dinamically change displayed action name to mention the last refresh of the
-  materialized view. (require extra community module.) (server-tools ?)
+  materialized view.
 
-* When setting to draft, it could great to keep the model, to avoid to map again
-  interesting, if we add / remove one new column  in the SQL View
+* Create ir.rule to limit access. (for company_id for exemple)
 
-  Better Idea ! Remove the wizard : keep the two value for function.
+Note
+====
+
+The syntax of the sql request has two constrains:
+* It requires an id field (unique);
+* All the selectable fields should have a 'x_' prefix
+
+Sample:
+
+    SELECT
+        row_number() OVER () AS id,
+        name as x_name
+    FROM res_partner
 
 Bug Tracker
 ===========
