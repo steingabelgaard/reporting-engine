@@ -15,9 +15,7 @@
         'sql_request_abstract',
     ],
     'data': [
-#        'views/action_button.xml',
         'views/view_bi_sql_view.xml',
-#        'views/view_bi_sql_field_wizard.xml',
         'views/action.xml',
         'views/menu.xml',
     ],

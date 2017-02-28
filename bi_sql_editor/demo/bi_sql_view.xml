@@ -19,6 +19,26 @@ License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
         <field name="query">SELECT name, street, company_id FROM res_partner order by name</field>
     </record>
 
-<!--    <function model="bi.sql.view" name="button_clean_check_request" eval="([ref('partner_sql_view')])"/>-->
+    <function model="bi.sql.view" name="button_clean_check_request" eval="([ref('partner_sql_view')])"/>
+
+    <record id="module_sql_view" model="bi.sql.view">
+        <field name="name">Module by Authors Group SQL View</field>
+        <field name="technical_name">module_view</field>
+        <field name="query"><![CDATA[
+SELECT
+    row_number() OVER () AS id,
+    name as x_name,
+    case
+        when author ilike '%OpenERP SA%' THEN 'Odoo SA'
+        when author ilike '%Odoo Community Association (OCA)%' THEN 'OCA'
+       else 'Undefined Author' END as x_author_type
+FROM ir_module_module
+]]>
+        </field>
+    </record>
+
+    <function model="bi.sql.view" name="button_clean_check_request" eval="([ref('module_sql_view')])"/>
+
+    <function model="bi.sql.view" name="button_create_sql_view_and_model" eval="([ref('module_sql_view')])"/>
 
 </data></openerp>
