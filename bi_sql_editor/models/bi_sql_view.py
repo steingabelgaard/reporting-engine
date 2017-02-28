@@ -134,8 +134,9 @@ class BiSQLView(models.Model):
             # Create ORM
             sql_view._create_model_and_fields()
 
-            # Create SQL View
+            # Create SQL View and indexes
             sql_view._create_view()
+            sql_view._create_index()
 
             if sql_view.is_materialized:
                 sql_view.cron_id = self.env['ir.cron'].create(
@@ -145,8 +146,8 @@ class BiSQLView(models.Model):
     @api.multi
     def button_set_draft(self):
         for sql_view in self:
-            if sql_view.state != 'sql_valid':
-                # Drop SQL View
+            if sql_view.state in ('model_valid', 'ui_valid'):
+                # Drop SQL View (and indexes by cascade)
                 sql_view._drop_view()
 
                 # Drop ORM
@@ -274,22 +275,15 @@ class BiSQLView(models.Model):
                         sql_view.materialized_text, sql_view.view_name,
                         e.message))
 
-#    @api.multi
-#    def _create_index(self):
-#        for sql_view in self:
-#            for sql_field in sql_view.bi_sql_view_field_ids.filtered(
-#                    lambda x: x.is_index is True):
-#                self.env.cr.execute(
-#                    "CREATE INDEX %s ON %s (%s);" % (
-#                        sql_field.index_name, sql_view.view_name,
-#                        sql_field.name))
-
-#    @api.multi
-#    def _drop_index(self):
-#        for sql_view in self:
-#            for sql_field in sql_view.bi_sql_view_field_ids.filtered(
-#                    lambda x: x.is_index is True):
-#                self.env.cr.execute("DROP INDEX %s" % (sql_field.index_name))
+    @api.multi
+    def _create_index(self):
+        for sql_view in self:
+            for sql_field in sql_view.bi_sql_view_field_ids.filtered(
+                    lambda x: x.is_index is True):
+                self._log_execute(
+                    "CREATE INDEX %s ON %s (%s);" % (
+                        sql_field.index_name, sql_view.view_name,
+                        sql_field.name))
 
     @api.multi
     def _create_model_and_fields(self):
