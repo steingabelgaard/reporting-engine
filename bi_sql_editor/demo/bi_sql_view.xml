@@ -14,7 +14,7 @@ License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
     </record>
 
     <record id="partner_sql_view" model="bi.sql.view">
-        <field name="name">Partners SQL View</field>
+        <field name="name">Partners View</field>
         <field name="technical_name">partner_view</field>
         <field name="query">SELECT name, street, company_id FROM res_partner order by name</field>
     </record>
@@ -22,7 +22,7 @@ License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
     <function model="bi.sql.view" name="button_clean_check_request" eval="([ref('partner_sql_view')])"/>
 
     <record id="module_sql_view" model="bi.sql.view">
-        <field name="name">Module by Authors Group SQL View</field>
+        <field name="name">Modules by Authors</field>
         <field name="technical_name">module_view</field>
         <field name="query"><![CDATA[
 SELECT
@@ -40,5 +40,7 @@ FROM ir_module_module
     <function model="bi.sql.view" name="button_clean_check_request" eval="([ref('module_sql_view')])"/>
 
     <function model="bi.sql.view" name="button_create_sql_view_and_model" eval="([ref('module_sql_view')])"/>
+
+    <function model="bi.sql.view" name="button_create_ui" eval="([ref('module_sql_view')])"/>
 
 </data></openerp>

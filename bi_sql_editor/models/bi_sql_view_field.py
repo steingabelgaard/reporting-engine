@@ -71,7 +71,14 @@ class BiSQLViewField(models.Model):
     bi_sql_view_id = fields.Many2one(
         string='SQL View', comodel_name='bi.sql.view', ondelete='cascade')
 
-    is_index = fields.Boolean(string='Is Index')
+    is_index = fields.Boolean(
+        string='Is Index', help="Check this box if you want to create"
+        " an index on that field. This is recommended for searchable and"
+        " groupable fields, to reduce duration")
+
+    is_group_by = fields.Boolean(
+        string='Is Group by', help="Check this box if you want to create"
+        " a 'group by' option in the search view")
 
     index_name = fields.Char(
         string='Index Name', compute='_compute_index_name')
@@ -166,4 +173,22 @@ class BiSQLViewField(models.Model):
         if self.graph_type and self.field_description:
             res = """<field name="{}" type="{}" />""".format(
                 self.name, self.graph_type)
+        return res
+
+    @api.multi
+    def _prepare_search_field(self):
+        self.ensure_one()
+        res = ''
+        if self.field_description:
+            res = """<field name="{}"/>""".format(self.name)
+        return res
+
+    @api.multi
+    def _prepare_search_filter_field(self):
+        self.ensure_one()
+        res = ''
+        if self.field_description and self.is_group_by:
+            res =\
+                """<filter string="%s" context="{'group_by':'%s'}"/>""" % (
+                    self.field_description, self.name)
         return res

@@ -71,6 +71,8 @@ class BiSQLView(models.Model):
         "    my_field as x_my_field\n"
         "FROM my_table")
 
+    has_group_changed = fields.Boolean(copy=False)
+
     bi_sql_view_field_ids = fields.One2many(
         string='SQL Fields', comodel_name='bi.sql.view.field',
         inverse_name='bi_sql_view_id')
@@ -117,6 +119,11 @@ class BiSQLView(models.Model):
             sql_view.model_name = '%s%s' % (
                 self._model_prefix, self.technical_name)
 
+    @api.onchange('group_ids')
+    def onchange_group_ids(self):
+        if self.state not in ('draft', 'sql_valid'):
+            self.has_group_changed = True
+
     # Overload Section
     @api.multi
     def copy(self, default=None):
@@ -134,8 +141,9 @@ class BiSQLView(models.Model):
         for sql_view in self:
             if sql_view.state != 'sql_valid':
                 raise _("You can only process this action on SQL Valid items")
-            # Create ORM
+            # Create ORM and acess
             sql_view._create_model_and_fields()
+            sql_view._create_model_access()
 
             # Create SQL View and indexes
             sql_view._create_view()
@@ -161,17 +169,25 @@ class BiSQLView(models.Model):
             sql_view.menu_id.unlink()
             if sql_view.cron_id:
                 sql_view.cron_id.unlink()
-            sql_view.state = 'draft'
+            sql_view.write({'state': 'draft', 'has_group_changed': False})
 
     @api.multi
     def button_create_ui(self):
         self.graph_view_id = self.env['ir.ui.view'].create(
             self._prepare_graph_view()).id
+        self.search_view_id = self.env['ir.ui.view'].create(
+            self._prepare_search_view()).id
         self.action_id = self.env['ir.actions.act_window'].create(
             self._prepare_action()).id
         self.menu_id = self.env['ir.ui.menu'].create(
             self._prepare_menu()).id
         self.write({'state': 'ui_valid'})
+
+    @api.multi
+    def button_update_model_access(self):
+        self._drop_model_access()
+        self._create_model_access()
+        self.write({'has_group_changed': False})
 
     @api.multi
     def button_refresh_materialized_view(self):
@@ -183,6 +199,7 @@ class BiSQLView(models.Model):
             'type': 'ir.actions.act_window',
             'res_model': self.model_id.model,
             'view_id': self.graph_view_id.id,
+            'search_view_id': self.search_view_id.id,
             'view_type': 'graph',
             'view_mode': 'graph',
         }
@@ -203,6 +220,23 @@ class BiSQLView(models.Model):
         }
 
     @api.multi
+    def _prepare_model_access(self):
+        self.ensure_one()
+        res = []
+        for group in self.group_ids:
+            res.append({
+                'name': _('%s Access %s') % (
+                    self.model_name, group.full_name),
+                'model_id': self.model_id.id,
+                'group_id': group.id,
+                'perm_read': True,
+                'perm_create': False,
+                'perm_write': False,
+                'perm_unlink': False,
+            })
+        return res
+
+    @api.multi
     def _prepare_cron(self):
         self.ensure_one()
         return {
@@ -214,7 +248,7 @@ class BiSQLView(models.Model):
         }
 
     @api.multi
-    def _prepare_view(self):
+    def _prepare_graph_view(self):
         self.ensure_one()
         return {
             'name': self.name,
@@ -228,33 +262,25 @@ class BiSQLView(models.Model):
                         for x in self.bi_sql_view_field_ids]))
              }
 
-<?xml version="1.0"?>
-<search string="Sales Analysis">
-                <field name="date"/>
-                <field name="date_confirm"/>
-                <filter string="This Year" name="year" invisible="1" domain="[('date','&lt;=', time.strftime('%Y-12-31')),('date','&gt;=',time.strftime('%Y-01-01'))]"/>
-                <filter name="Quotations" string="Quotations" domain="[('state','=','draft')]"/>
-                <filter name="Sales" string="Sales" domain="[('state','not in',('draft', 'cancel'))]"/>
-                <separator/>
-                <filter string="My Sales" help="My Sales" domain="[('user_id','=',uid)]"/>
-                <field name="partner_id"/>
-                <field name="product_id"/>
-                <field name="user_id"/>
-                <group expand="0" string="Extended Filters">
-                    <field name="categ_id" filter_domain="[('categ_id', 'child_of', self)]"/>
-                    <field name="company_id" groups="base.group_multi_company"/>
-                </group>
-                <group expand="1" string="Group By">
-                    <filter string="Salesperson" name="User" context="{'group_by':'user_id'}"/>
-                    <filter string="Sales Team" context="{'group_by':'section_id'}" groups="base.group_multi_salesteams"/>
-                    <filter string="Customer" name="Customer" context="{'group_by':'partner_id'}"/>
-                    <filter string="Category of Product" name="Category" context="{'group_by':'categ_id'}"/>
-                    <filter string="Status" context="{'group_by':'state'}"/>
-                    <filter string="Company" groups="base.group_multi_company" context="{'group_by':'company_id'}"/>
-                    <separator/>
-                    <filter string="Order Month" context="{'group_by':'date:month'}" help="Ordered date of the sales order"/>
-                </group>
-            </search>
+    @api.multi
+    def _prepare_search_view(self):
+        self.ensure_one()
+        return {
+            'name': self.name,
+            'type': 'search',
+            'model': self.model_id.model,
+            'arch':
+                """<?xml version="1.0"?>"""
+                """<search string="Analysis">{}"""
+                """<group expand="1" string="Group By">{}</group>"""
+                """</search>""".format(
+                    "".join(
+                        [x._prepare_search_field()
+                            for x in self.bi_sql_view_field_ids]),
+                    "".join(
+                        [x._prepare_search_filter_field()
+                            for x in self.bi_sql_view_field_ids]))
+        }
 
     @api.multi
     def _prepare_action(self):
@@ -265,7 +291,8 @@ class BiSQLView(models.Model):
             'type': 'ir.actions.act_window',
             'view_type': 'form',
             'view_mode': 'graph',
-            'view_id': self.view_id.id,
+            'view_id': self.graph_view_id.id,
+            'search_view_id': self.search_view_id.id,
         }
 
     @api.multi
@@ -324,6 +351,18 @@ class BiSQLView(models.Model):
             sql_view.model_id = model.id
             # Drop table, created by the ORM
             self.env.cr.execute("DROP TABLE %s" % (sql_view.view_name))
+
+    @api.multi
+    def _create_model_access(self):
+        for sql_view in self:
+            for item in sql_view._prepare_model_access():
+                self.env['ir.model.access'].create(item)
+
+    @api.multi
+    def _drop_model_access(self):
+        for sql_view in self:
+            self.env['ir.model.access'].search(
+                [('model_id', '=', sql_view.model_name)]).unlink()
 
     @api.multi
     def _drop_model_and_fields(self):

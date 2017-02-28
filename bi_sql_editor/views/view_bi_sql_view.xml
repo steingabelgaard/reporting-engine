@@ -33,6 +33,10 @@ License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
                     <button name="button_create_sql_view_and_model" type="object" states="sql_valid"
                         string="Create SQL View, Indexes and Models" class="oe_highlight"
                         help="This will try to create an SQL View, based on the SQL request and the according Transient Model and fields, based on settings"/>
+                    <button name="button_update_model_access" type="object"
+                        attrs="{'invisible': ['|', ('state', 'in', ('draft', 'sql_valid')), ('has_group_changed', '=', False)]}"
+                        string="Update Model Acess" class="oe_highlight"
+                        help="Update Model Access. Required if you changed groups list after having created the model"/>
                     <button name="button_create_ui" type="object" states="model_valid" string="Create UI"
                         class="oe_highlight" help="This will create Odoo View, Action and Menu"/>
                     <button name="button_refresh_materialized_view" type="object" string="Refresh Materialized View"
@@ -51,23 +55,16 @@ License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
                             <group>
                                 <field name="technical_name"/>
                                 <field name="view_name" />
-                                <field name="model_name" />
                                 <field name="is_materialized"/>
                                 <field name="size"
                                     attrs="{'invisible': ['|', ('state', '=', 'draft'), ('is_materialized', '=', False)]}"/>
-                                <field name="model_id" attrs="{'invisible': [('state', '=', 'draft')]}"/>
-                                <field name="cron_id"
-                                    attrs="{'invisible': ['|', ('state', '=', 'draft'), ('is_materialized', '=', False)]}"/>
-                            </group>
-                            <group string="User Interface" attrs="{'invisible': [('state', '!=', 'ui_valid')]}">
-                                <field name="graph_view_id"/>
-                                <field name="search_view_id"/>
-                                <field name="action_id"/>
-                                <field name="menu_id"/>
                             </group>
                         </group>
                     </group>
                     <notebook>
+                        <page string="SQL Query">
+                            <field name="query" nolabel="1" colspan="4"/>
+                        </page>
                         <page string="SQL Fields" attrs="{'invisible': [('state', '=', 'draft')]}">
                             <field name="bi_sql_view_field_ids" nolabel="1" colspan="4" attrs="{'readonly': [('state', '!=', 'sql_valid')]}">
                                 <tree editable="bottom" colors="blue:field_description==False">
@@ -88,12 +85,34 @@ License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
                                             ('field_description', '!=', False),
                                             ('ttype', '=', 'selection')]}"/>
                                     <field name="is_index" attrs="{'invisible': [('field_description', '=', False)]}"/>
+                                    <field name="is_group_by" attrs="{'invisible': [('field_description', '=', False)]}"/>
                                     <field name="graph_type" attrs="{'invisible': [('field_description', '=', False)]}"/>
                                 </tree>
                             </field>
                         </page>
-                        <page string="SQL Query">
-                            <field name="query" nolabel="1" colspan="4"/>
+                        <page string="Security">
+                            <group>
+                                <group string="Allowed Groups">
+                                    <field name="group_ids" nolabel="1"/>
+                                    <field name="has_group_changed" invisible="1"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Extras Information">
+                            <group>
+                                <group string="Model and Cron">
+                                    <field name="model_name" />
+                                    <field name="model_id" attrs="{'invisible': [('state', '=', 'draft')]}"/>
+                                    <field name="cron_id"
+                                        attrs="{'invisible': ['|', ('state', '=', 'draft'), ('is_materialized', '=', False)]}"/>
+                                </group>
+                                <group string="User Interface">
+                                    <field name="graph_view_id"/>
+                                    <field name="search_view_id"/>
+                                    <field name="action_id"/>
+                                    <field name="menu_id"/>
+                                </group>
+                            </group>
                         </page>
                     </notebook>
                 </sheet>
