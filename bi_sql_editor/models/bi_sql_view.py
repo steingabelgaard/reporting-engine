@@ -78,8 +78,11 @@ class BiSQLView(models.Model):
     model_id = fields.Many2one(
         string='Odoo Model', comodel_name='ir.model', readonly=True)
 
-    view_id = fields.Many2one(
-        string='Odoo View', comodel_name='ir.ui.view', readonly=True)
+    graph_view_id = fields.Many2one(
+        string='Odoo Graph View', comodel_name='ir.ui.view', readonly=True)
+
+    search_view_id = fields.Many2one(
+        string='Odoo Search View', comodel_name='ir.ui.view', readonly=True)
 
     action_id = fields.Many2one(
         string='Odoo Action', comodel_name='ir.actions.act_window',
@@ -153,7 +156,7 @@ class BiSQLView(models.Model):
                 # Drop ORM
                 sql_view._drop_model_and_fields()
 
-            sql_view.view_id.unlink()
+            sql_view.graph_view_id.unlink()
             sql_view.action_id.unlink()
             sql_view.menu_id.unlink()
             if sql_view.cron_id:
@@ -162,8 +165,8 @@ class BiSQLView(models.Model):
 
     @api.multi
     def button_create_ui(self):
-        self.view_id = self.env['ir.ui.view'].create(
-            self._prepare_view()).id
+        self.graph_view_id = self.env['ir.ui.view'].create(
+            self._prepare_graph_view()).id
         self.action_id = self.env['ir.actions.act_window'].create(
             self._prepare_action()).id
         self.menu_id = self.env['ir.ui.menu'].create(
@@ -179,7 +182,7 @@ class BiSQLView(models.Model):
         return {
             'type': 'ir.actions.act_window',
             'res_model': self.model_id.model,
-            'view_id': self.view_id.id,
+            'view_id': self.graph_view_id.id,
             'view_type': 'graph',
             'view_mode': 'graph',
         }
@@ -224,6 +227,34 @@ class BiSQLView(models.Model):
                     [x._prepare_graph_field()
                         for x in self.bi_sql_view_field_ids]))
              }
+
+<?xml version="1.0"?>
+<search string="Sales Analysis">
+                <field name="date"/>
+                <field name="date_confirm"/>
+                <filter string="This Year" name="year" invisible="1" domain="[('date','&lt;=', time.strftime('%Y-12-31')),('date','&gt;=',time.strftime('%Y-01-01'))]"/>
+                <filter name="Quotations" string="Quotations" domain="[('state','=','draft')]"/>
+                <filter name="Sales" string="Sales" domain="[('state','not in',('draft', 'cancel'))]"/>
+                <separator/>
+                <filter string="My Sales" help="My Sales" domain="[('user_id','=',uid)]"/>
+                <field name="partner_id"/>
+                <field name="product_id"/>
+                <field name="user_id"/>
+                <group expand="0" string="Extended Filters">
+                    <field name="categ_id" filter_domain="[('categ_id', 'child_of', self)]"/>
+                    <field name="company_id" groups="base.group_multi_company"/>
+                </group>
+                <group expand="1" string="Group By">
+                    <filter string="Salesperson" name="User" context="{'group_by':'user_id'}"/>
+                    <filter string="Sales Team" context="{'group_by':'section_id'}" groups="base.group_multi_salesteams"/>
+                    <filter string="Customer" name="Customer" context="{'group_by':'partner_id'}"/>
+                    <filter string="Category of Product" name="Category" context="{'group_by':'categ_id'}"/>
+                    <filter string="Status" context="{'group_by':'state'}"/>
+                    <filter string="Company" groups="base.group_multi_company" context="{'group_by':'company_id'}"/>
+                    <separator/>
+                    <filter string="Order Month" context="{'group_by':'date:month'}" help="Ordered date of the sales order"/>
+                </group>
+            </search>
 
     @api.multi
     def _prepare_action(self):

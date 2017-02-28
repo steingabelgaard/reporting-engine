@@ -60,7 +60,8 @@ License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
                                     attrs="{'invisible': ['|', ('state', '=', 'draft'), ('is_materialized', '=', False)]}"/>
                             </group>
                             <group string="User Interface" attrs="{'invisible': [('state', '!=', 'ui_valid')]}">
-                                <field name="view_id"/>
+                                <field name="graph_view_id"/>
+                                <field name="search_view_id"/>
                                 <field name="action_id"/>
                                 <field name="menu_id"/>
                             </group>
