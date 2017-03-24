@@ -146,7 +146,7 @@ openerp.bi_view_editor = function (instance, local) {
             }
 
         },
-        _render_field(_self, _index, _result, _item, _addField) {
+        _render_field: function(_self, _index, _result, _item, _addField) {
             if(_self.$el.find(".field-list tbody [name=label-" + _result[_index].id + "]").length > 0) return;
             _item.after($("<div class=\"field\" title=\"" + _result[_index].name + "\" id=\"bve-field-" + _result[_index].name + "\">" + _result[_index].description + "</div>")
                           .data('field-data', _result[_index])
