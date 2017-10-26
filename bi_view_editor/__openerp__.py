@@ -1,19 +1,19 @@
 # -*- coding: utf-8 -*-
-# Copyright 2015-2017 Onestein (<http://www.onestein.eu>)
+# © 2015-2016 ONESTEiN BV (<http://www.onestein.eu>)
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
 
 {
     'name': 'BI View Editor',
-    'summary': 'Graphical BI views builder for Odoo',
+    'summary': '''Graphical BI views builder for Odoo 8''',
     'images': ['static/description/main_screenshot.png'],
-    'author': 'Onestein,Odoo Community Association (OCA)',
+    'author': 'ONESTEiN BV,Odoo Community Association (OCA)',
     'license': 'AGPL-3',
     'website': 'http://www.onestein.eu',
     'category': 'Reporting',
-    'version': '8.0.1.1.0',
+    'version': '8.0.1.0.0',
     'depends': [
         'base',
-        'web'
+        'web',
     ],
     'data': [
         'security/ir.model.access.csv',
@@ -27,6 +27,8 @@
     'js': [
         'static/src/js/bve.js'
     ],
+    'demo': [],
     'installable': True,
-    'uninstall_hook': 'uninstall_hook'
+    'auto_install': False,
+    'application': False,
 }

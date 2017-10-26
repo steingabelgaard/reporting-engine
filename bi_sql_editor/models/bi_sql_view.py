@@ -63,13 +63,19 @@ class BiSQLView(models.Model):
         " * set a name for all your selected fields, specially if you use"
         " SQL function (like EXTRACT, ...);\n"
         " * Do not use 'SELECT *' or 'SELECT table.*';\n"
-        " * do not end your request by ';'\n"
-        " * Begin your request by 'SELECT row_number() OVER () AS id';\n"
-        " * prefix your column by 'x_';",
+        " * prefix the name of the selectable columns by 'x_';",
         default="SELECT\n"
-        "    row_number() OVER () AS id,\n"
         "    my_field as x_my_field\n"
         "FROM my_table")
+
+    domain_force = fields.Text(
+        string='Extra Rule Definition', default="[]", help="Define here"
+        " access restriction to data.\n"
+        " Take care to use field name prefixed by 'x_'."
+        " A global 'ir.rule' will be created."
+        " A typical Multi Company rule is for exemple \n"
+        " ['|', ('x_company_id','child_of', [user.company_id.id]),"
+        "('x_company_id','=',False)].")
 
     has_group_changed = fields.Boolean(copy=False)
 
@@ -97,27 +103,30 @@ class BiSQLView(models.Model):
         string='Odoo Cron', comodel_name='ir.cron', readonly=True,
         help="Cron Task that will refresh the materialized view")
 
+    rule_id = fields.Many2one(
+        string='Odoo Rule', comodel_name='ir.rule', readonly=True)
+
     # Compute Section
     @api.depends('is_materialized')
     @api.multi
     def _compute_materialized_text(self):
         for sql_view in self:
             sql_view.materialized_text =\
-                self.is_materialized and 'MATERIALIZED' or ''
+                sql_view.is_materialized and 'MATERIALIZED' or ''
 
     @api.depends('technical_name')
     @api.multi
     def _compute_view_name(self):
         for sql_view in self:
             sql_view.view_name = '%s%s' % (
-                self._sql_prefix, self.technical_name)
+                sql_view._sql_prefix, sql_view.technical_name)
 
     @api.depends('technical_name')
     @api.multi
     def _compute_model_name(self):
         for sql_view in self:
             sql_view.model_name = '%s%s' % (
-                self._model_prefix, self.technical_name)
+                sql_view._model_prefix, sql_view.technical_name)
 
     @api.onchange('group_ids')
     def onchange_group_ids(self):
@@ -125,6 +134,15 @@ class BiSQLView(models.Model):
             self.has_group_changed = True
 
     # Overload Section
+    @api.multi
+    def unlink(self):
+        non_draft_views = self.search([
+            ('id', 'in', self.ids),
+            ('state', 'not in', ('draft', 'sql_valid'))])
+        if non_draft_views:
+            raise UserError(_("You can only unlink draft views"))
+        return self.unlink()
+
     @api.multi
     def copy(self, default=None):
         self.ensure_one()
@@ -140,7 +158,8 @@ class BiSQLView(models.Model):
     def button_create_sql_view_and_model(self):
         for sql_view in self:
             if sql_view.state != 'sql_valid':
-                raise _("You can only process this action on SQL Valid items")
+                raise UserError(_(
+                    "You can only process this action on SQL Valid items"))
             # Create ORM and acess
             sql_view._create_model_and_fields()
             sql_view._create_model_access()
@@ -167,6 +186,7 @@ class BiSQLView(models.Model):
             sql_view.graph_view_id.unlink()
             sql_view.action_id.unlink()
             sql_view.menu_id.unlink()
+            sql_view.rule_id.unlink()
             if sql_view.cron_id:
                 sql_view.cron_id.unlink()
             sql_view.write({'state': 'draft', 'has_group_changed': False})
@@ -248,6 +268,16 @@ class BiSQLView(models.Model):
         }
 
     @api.multi
+    def _prepare_rule(self):
+        self.ensure_one()
+        return {
+            'name': _('Access %s') % (self.name),
+            'model_id': self.model_id.id,
+            'domain_force': self.domain_force,
+            'global': True,
+        }
+
+    @api.multi
     def _prepare_graph_view(self):
         self.ensure_one()
         return {
@@ -260,7 +290,7 @@ class BiSQLView(models.Model):
                 """</graph>""".format("".join(
                     [x._prepare_graph_field()
                         for x in self.bi_sql_view_field_ids]))
-             }
+        }
 
     @api.multi
     def _prepare_search_view(self):
@@ -322,10 +352,7 @@ class BiSQLView(models.Model):
         for sql_view in self:
             sql_view._drop_view()
             try:
-                self._log_execute(
-                    "CREATE %s VIEW %s AS (%s);" % (
-                        self.materialized_text, sql_view.view_name,
-                        sql_view.query))
+                self._log_execute(sql_view._prepare_request_for_execution())
                 sql_view._refresh_size()
             except ProgrammingError as e:
                 raise UserError(_(
@@ -347,10 +374,13 @@ class BiSQLView(models.Model):
     def _create_model_and_fields(self):
         for sql_view in self:
             # Create model
-            model = self.env['ir.model'].create(self._prepare_model())
-            sql_view.model_id = model.id
+            sql_view.model_id = self.env['ir.model'].create(
+                self._prepare_model()).id
+            sql_view.rule_id = self.env['ir.rule'].create(
+                self._prepare_rule()).id
             # Drop table, created by the ORM
-            self.env.cr.execute("DROP TABLE %s" % (sql_view.view_name))
+            req = "DROP TABLE %s" % (sql_view.view_name)
+            self.env.cr.execute(req)
 
     @api.multi
     def _create_model_access(self):
@@ -380,10 +410,9 @@ class BiSQLView(models.Model):
             WHERE   attrelid = '%s'::regclass
             AND     NOT attisdropped
             AND     attnum > 0
-            ORDER   BY attnum;"""
-        self.env.cr.execute(req % (self.view_name))
-        res = self.env.cr.fetchall()
-        return res
+            ORDER   BY attnum;""" % (self.view_name)
+        self.env.cr.execute(req)
+        return self.env.cr.fetchall()
 
     @api.multi
     def _prepare_request_check_execution(self):
@@ -391,12 +420,29 @@ class BiSQLView(models.Model):
         return "CREATE VIEW %s AS (%s);" % (self.view_name, self.query)
 
     @api.multi
+    def _prepare_request_for_execution(self):
+        self.ensure_one()
+        query = """
+            SELECT
+                CAST(row_number() OVER () as integer) AS id,
+                CAST(Null as timestamp without time zone) as create_date,
+                CAST(Null as integer) as create_uid,
+                CAST(Null as timestamp without time zone) as write_date,
+                CAST(Null as integer) as write_uid,
+                my_query.*
+            FROM
+                (%s) as my_query
+        """ % (self.query)
+        return "CREATE %s VIEW %s AS (%s);" % (
+            self.materialized_text, self.view_name, query)
+
+    @api.multi
     def _check_execution(self):
         """Ensure that the query is valid, trying to execute it.
         a non materialized view is created for this check.
         A rollback is done at the end.
         After the execution, and before the rollback, an analysis of
-        the database structure is done"""
+        the database structure is done, to know fields type."""
         self.ensure_one()
         sql_view_field_obj = self.env['bi.sql.view.field']
         columns = super(BiSQLView, self)._check_execution()
@@ -412,31 +458,38 @@ class BiSQLView(models.Model):
                     'sql_type': column[2],
                 })
             else:
-                # Create a new one
-                field_ids.append(sql_view_field_obj.create({
-                    'sequence': column[0],
-                    'name': column[1],
-                    'sql_type': column[2],
-                    'bi_sql_view_id': self.id,
-                }).id)
+                # Create a new one if name is prefixed by x_
+                if column[1][:2] == 'x_':
+                    field_ids.append(sql_view_field_obj.create({
+                        'sequence': column[0],
+                        'name': column[1],
+                        'sql_type': column[2],
+                        'bi_sql_view_id': self.id,
+                    }).id)
+
         # Drop obsolete view field
         self.bi_sql_view_field_ids.filtered(
             lambda x: x.id not in field_ids).unlink()
+
+        if not self.bi_sql_view_field_ids:
+            raise UserError(_(
+                "No Column was found.\n"
+                "Columns name should be prefixed by 'x_'."))
 
         return columns
 
     @api.multi
     def _refresh_materialized_view(self):
         for sql_view in self:
-            self._log_execute(
-                "REFRESH %s VIEW %s" % (
-                    self.materialized_text, sql_view.view_name))
+            req = "REFRESH %s VIEW %s" % (
+                sql_view.materialized_text, sql_view.view_name)
+            self._log_execute(req)
             sql_view._refresh_size()
 
     @api.multi
     def _refresh_size(self):
         for sql_view in self:
-            self.env.cr.execute(
-                "SELECT pg_size_pretty(pg_total_relation_size('%s'));" % (
-                    sql_view.view_name))
+            req = "SELECT pg_size_pretty(pg_total_relation_size('%s'));" % (
+                sql_view.view_name)
+            self.env.cr.execute(req)
             sql_view.size = self.env.cr.fetchone()[0]

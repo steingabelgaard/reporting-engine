@@ -10,23 +10,36 @@ License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
     <record id="incorrect_sql_view" model="bi.sql.view">
         <field name="name">Draft Incorrect SQL View</field>
         <field name="technical_name">incorrect_view</field>
-        <field name="query">SELECT * FROM unexisting_table ORDER BY unexisting_field</field>
+        <field name="query"><![CDATA[
+SELECT *
+FROM unexisting_table
+ORDER BY unexisting_field
+]]>
+        </field>
     </record>
 
     <record id="partner_sql_view" model="bi.sql.view">
         <field name="name">Partners View</field>
-        <field name="technical_name">partner_view</field>
-        <field name="query">SELECT name, street, company_id FROM res_partner order by name</field>
+        <field name="technical_name">partners_view</field>
+        <field name="query"><![CDATA[
+SELECT
+    name as x_name,
+    street as x_street,
+    company_id as x_company_id
+FROM res_partner
+ORDER BY name
+]]>
+        </field>
     </record>
 
-    <function model="bi.sql.view" name="button_clean_check_request" eval="([ref('partner_sql_view')])"/>
+    <function model="bi.sql.view" name="button_validate_sql_expression" eval="([ref('partner_sql_view')])"/>
 
     <record id="module_sql_view" model="bi.sql.view">
         <field name="name">Modules by Authors</field>
-        <field name="technical_name">module_view</field>
+        <field name="technical_name">modules_view</field>
+        <field name="is_materialized" eval="0" />
         <field name="query"><![CDATA[
 SELECT
-    row_number() OVER () AS id,
     name as x_name,
     case
         when author ilike '%OpenERP SA%' THEN 'Odoo SA'
@@ -37,7 +50,7 @@ FROM ir_module_module
         </field>
     </record>
 
-    <function model="bi.sql.view" name="button_clean_check_request" eval="([ref('module_sql_view')])"/>
+    <function model="bi.sql.view" name="button_validate_sql_expression" eval="([ref('module_sql_view')])"/>
 
     <function model="bi.sql.view" name="button_create_sql_view_and_model" eval="([ref('module_sql_view')])"/>
 

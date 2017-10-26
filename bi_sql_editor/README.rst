@@ -9,12 +9,13 @@ BI Views builder, based on Materialized or Normal SQL Views
 This module extends the functionality of reporting, to support creation
 of extra custom reports.
 It allows user to write a custom SQL request. (Generally, admin users)
+
 Once written, a new model is generated, and user can map the selected field
 with odoo fields.
 Then user ends the process, creating new menu, action and graph view.
 
 Technically, the module create SQL View (or materialized view, if option is
-checked). Materialized view duplicate datas, but request are fastest. If
+checked). Materialized view duplicates datas, but request are fastest. If
 materialized view is enabled, this module will create a cron task to refresh
 the data).
 
@@ -37,7 +38,7 @@ this module is interesting for the following use cases
 
 * You want to realize technical SQL requests, that Odoo framework doesn't allow
   (For exemple, UNION with many SELECT) A typical use case is if you want to have
-  sale and PoS order datas in a same table
+  Sale Orders and PoS Orders datas in a same table
 
 * You want to customize an Odoo report, removing some useless fields and adding
   some custom ones. In that case, you can simply select the fields of the original
@@ -113,7 +114,7 @@ Known issues / Roadmap
 
 * Add 'interval', after type (row/col/measure) field for date(time) fields.
 
-* Dinamically change displayed action name to mention the last refresh of the
+* Dynamically change displayed action name to mention the last refresh of the
   materialized view.
 
 * Create ir.rule to limit access. (for company_id for exemple)
@@ -121,15 +122,15 @@ Known issues / Roadmap
 Note
 ====
 
-The syntax of the sql request has two constrains:
-* It requires an id field (unique);
-* All the selectable fields should have a 'x_' prefix
+The syntax of the sql request has the following constrains:
+
+* the name of the selectable columns should be prefixed by `x_`
 
 Sample:
 
-    SELECT
-        row_number() OVER () AS id,
-        name as x_name
+.. code-block:: sql
+
+    SELECT name as x_name
     FROM res_partner
 
 Bug Tracker
@@ -149,16 +150,15 @@ Contributors
 * Sylvain LE GAL (https://twitter.com/legalsylvain)
 
 * This module is highly inspired by the work of
-
-#. Onestein: (http://www.onestein.nl/)
-   Module: OCA/server-tools/bi_view_editor.
-   Link: https://github.com/OCA/reporting-engine/tree/8.0/bi_view_editor
-#. Anybox: (https://anybox.fr/)
-   Module : OCA/server-tools/materialized_sql_view
-   link: https://github.com/OCA/server-tools/pull/110
-#. GRAP, Groupement Régional Alimentaire de Proximité: (http://www.grap.coop/)
-   Module: grap/odoo-addons-misc/pos_sale_reporting
-   link: https://github.com/grap/odoo-addons-misc/tree/7.0/pos_sale_reporting
+    * Onestein: (http://www.onestein.nl/)
+      Module: OCA/server-tools/bi_view_editor.
+      Link: https://github.com/OCA/reporting-engine/tree/8.0/bi_view_editor
+    * Anybox: (https://anybox.fr/)
+      Module : OCA/server-tools/materialized_sql_view
+      link: https://github.com/OCA/server-tools/pull/110
+    * GRAP, Groupement Régional Alimentaire de Proximité: (http://www.grap.coop/)
+      Module: grap/odoo-addons-misc/pos_sale_reporting
+      link: https://github.com/grap/odoo-addons-misc/tree/7.0/pos_sale_reporting
 
 
 Funders

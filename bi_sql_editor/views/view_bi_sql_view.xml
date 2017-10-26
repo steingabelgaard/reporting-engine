@@ -24,8 +24,8 @@ License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
         <field name="arch" type="xml">
             <form>
                 <header>
-                    <button name="button_clean_check_request" type="object" states="draft"
-                            string="Clean and Check Request" class="oe_highlight"/>
+                    <button name="button_validate_sql_expression" type="object" states="draft"
+                            string="Validate SQL Expression" class="oe_highlight"/>
                     <button name="button_set_draft" type="object" states="sql_valid,model_valid,ui_valid"
                             string="Set to Draft" groups="sql_request_abstract.group_sql_request_manager"
                             confirm="Are you sure you want to set to draft this SQL View. It will delete
@@ -93,6 +93,9 @@ License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
                             </field>
                         </page>
                         <page string="Security">
+                            <group string="Rule Definition">
+                                <field name="domain_force" nolabel="1" colspan="4"/>
+                            </group>
                             <group>
                                 <group string="Allowed Groups">
                                     <field name="group_ids" nolabel="1"/>

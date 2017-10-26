@@ -42,24 +42,6 @@ class BiSQLViewField(models.Model):
         'timestamp without time zone': 'datetime',
     }
 
-    # Mapping to try to guess most common many2one model, based on field name
-    _MODEL_MAPPING = {
-        # Base Model
-        'partner_id': 'res.partner',
-        'user_id': 'res.users',
-        'uid': 'res.users',
-        # Product Model
-        'product_id': 'product.product',
-        'product_tmpl_id': 'product.template',
-        'uom_id': 'product.uom',
-        'categ_id': 'product.category',
-        # Account Model
-        'account_id': 'account.account',
-        'invoice_id': 'account.invoice',
-        'journal_id': 'account.journal',
-        'period_id': 'account.period',
-    }
-
     name = fields.Char(string='Name', required=True, readonly=True)
 
     sql_type = fields.Char(
@@ -118,16 +100,13 @@ class BiSQLViewField(models.Model):
     # Overload Section
     @api.multi
     def create(self, vals):
-        # guess field description:
-        # remove 'x_' replace '_' by ' ' and Capitalize
-        if vals['name'][:2] != 'x_':
-            field_description = False
-        else:
-            field_description = re.sub(
-                r'\w+', lambda m: m.group(0).capitalize(),
-                vals['name'][2:].replace('_', ' '))
+        field_without_prefix = vals['name'][2:]
+        # guess field description
+        field_description = re.sub(
+            r'\w+', lambda m: m.group(0).capitalize(),
+            field_without_prefix.replace('_id', '').replace('_', ' '))
 
-        # Guess ttype:
+        # Guess ttype
         # Don't execute as simple .get() in the dict to manage
         # correctly the type 'character varying(x)'
         ttype = False
@@ -138,10 +117,9 @@ class BiSQLViewField(models.Model):
         # Guess many2one_model_id
         many2one_model_id = False
         if vals['sql_type'] == 'integer' and(
-                vals['name'][-3:] == '_id' or
-                vals['name'][-4:] == '_uid'):
+                vals['name'][-3:] == '_id'):
             ttype = 'many2one'
-            model_name = self._MODEL_MAPPING.get(vals['name'][2:], '')
+            model_name = self._model_mapping().get(field_without_prefix, '')
             many2one_model_id = self.env['ir.model'].search(
                 [('model', '=', model_name)]).id
 
@@ -153,6 +131,28 @@ class BiSQLViewField(models.Model):
         return super(BiSQLViewField, self).create(vals)
 
     # Custom Section
+    @api.model
+    def _model_mapping(self):
+        """Return dict of key value, to try to guess the model based on a
+        field name. Sample :
+        {'account_id': 'account.account'; 'product_id': 'product.product'}
+        """
+        relation_fields = self.env['ir.model.fields'].search([
+            ('ttype', '=', 'many2one')])
+        res = {}
+        keys_to_pop = []
+        for field in relation_fields:
+            if field.name in res and res.get(field.name) != field.relation:
+                # The field name is not predictive
+                keys_to_pop.append(field.name)
+            else:
+                res.update({field.name: field.relation})
+
+        for key in list(set(keys_to_pop)):
+            res.pop(key)
+
+        return res
+
     @api.multi
     def _prepare_model_field(self):
         self.ensure_one()

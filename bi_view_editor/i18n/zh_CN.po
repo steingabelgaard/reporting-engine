@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: reporting-engine (8.0)\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-01-07 05:41+0000\n"
+"POT-Creation-Date: 2017-08-19 07:59+0000\n"
 "PO-Revision-Date: 2016-03-21 15:33+0000\n"
 "Last-Translator: <>\n"
 "Language-Team: Chinese (China) (http://www.transifex.com/oca/OCA-reporting-engine-8-0/language/zh_CN/)\n"
@@ -92,7 +92,7 @@ msgstr "显示名称"
 #. module: bi_view_editor
 #: selection:bve.view,state:0
 msgid "Draft"
-msgstr ""
+msgstr "草稿"
 
 #. module: bi_view_editor
 #: code:addons/bi_view_editor/models/bve_view.py:72
@@ -149,7 +149,7 @@ msgstr "名称"
 #: view:bve.view:bi_view_editor.view_bi_view_editor_view_form
 #: field:bve.view,note:0
 msgid "Notes"
-msgstr ""
+msgstr "备注"
 
 #. module: bi_view_editor
 #: view:bve.view:bi_view_editor.view_bi_view_editor_view_form
@@ -174,7 +174,7 @@ msgstr "安全"
 #. module: bi_view_editor
 #: field:bve.view,state:0
 msgid "State"
-msgstr ""
+msgstr "状态"
 
 #. module: bi_view_editor
 #: help:bve.view,data:0
