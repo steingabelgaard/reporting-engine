@@ -56,8 +56,8 @@ class SqlExport(models.Model):
             ("windows-1251", "windows-1251"),
             ("koir8_r", "koir8_r"),
         ],
-        required=True,
-        default="utf-8",
+        required=False,
+        # default="utf-8",
     )
 
     def export_sql_query(self):
